@@ -1,51 +1,74 @@
 import { useCallback, useState } from 'react';
 import { motion } from 'framer-motion';
-import { UploadCloud, File, X } from 'lucide-react';
+import { UploadCloud, File, X, BookOpen, Layers } from 'lucide-react';
 import { useStore } from '../../store/useStore';
 import { extractTextFromPDF } from '../../services/pdfService';
-import { detectSubjects, formatBytes } from '../../utils/helpers';
+import { classifySubject, formatBytes } from '../../utils/helpers';
 import ProcessingLoader from './ProcessingLoader';
 
 const UploadArea = () => {
   const [isDragging, setIsDragging] = useState(false);
   const { 
-    files, addFiles, setFiles, 
+    documents, addDocument, removeDocument,
+    addOrUpdateSubject,
     processing, setProcessing, 
-    setProcessingProgress, 
-    setSubjects, setNotesText 
+    setProcessingProgress, setProcessingStatus 
   } = useStore();
 
-  const processFiles = async (uploadedFiles) => {
-    addFiles(uploadedFiles);
+  const processFiles = useCallback(async (uploadedFiles) => {
+    if (!uploadedFiles || uploadedFiles.length === 0) return;
+
     setProcessing(true);
     setProcessingProgress(0);
+    setProcessingStatus("Initializing extraction...");
 
-    let extractedText = "";
-    
-    // Process files one by one to avoid UI freeze
-    for (let i = 0; i < uploadedFiles.length; i++) {
+    const total = uploadedFiles.length;
+
+    for (let i = 0; i < total; i++) {
       const file = uploadedFiles[i];
-      if (file.type === "application/pdf") {
-        const text = await extractTextFromPDF(file, (progress) => {
-          // Normalize progress across all files
-          const baseProgress = (i / uploadedFiles.length) * 100;
-          const fileProgress = progress * (1 / uploadedFiles.length);
-          setProcessingProgress(baseProgress + fileProgress);
+      const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith('.pdf');
+
+      if (isPdf) {
+        setProcessingStatus(`Extracting ${file.name}...`);
+
+        const extraction = await extractTextFromPDF(file, (fileProgress) => {
+          const baseProgress = (i / total) * 100;
+          const currentFilePortion = fileProgress * (1 / total);
+          setProcessingProgress(Math.min(99, Math.round(baseProgress + currentFilePortion)));
         });
-        extractedText += text + "\n\n";
+
+        // Determine subject for this individual document
+        const subjectName = classifySubject(file.name, extraction.fullText.slice(0, 1000));
+        const subjectId = subjectName.toLowerCase().replace(/[^a-z0-9]+/g, '_');
+        const docId = `doc_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+
+        const doc = {
+          id: docId,
+          name: file.name,
+          size: file.size,
+          pageCount: extraction.pageCount,
+          subjectId: subjectId,
+          subjectName: subjectName,
+          fullText: extraction.fullText,
+          chunks: extraction.chunks,
+          uploadedAt: new Date().toISOString(),
+          status: extraction.hasExtractableText ? 'ready' : 'empty',
+          error: extraction.error || null
+        };
+
+        // Add document to store & link to subject
+        addDocument(doc);
+        addOrUpdateSubject(subjectName, docId);
       }
     }
 
-    setNotesText(extractedText);
-    const generatedSubjects = detectSubjects(files.concat(uploadedFiles));
-    setSubjects(generatedSubjects);
-    
-    // Finish
+    // Completion transition
     setProcessingProgress(100);
+    setProcessingStatus("Completed!");
     setTimeout(() => {
       setProcessing(false);
-    }, 800);
-  };
+    }, 600);
+  }, [addDocument, addOrUpdateSubject, setProcessing, setProcessingProgress, setProcessingStatus]);
 
   const handleDrop = useCallback((e) => {
     e.preventDefault();
@@ -53,7 +76,7 @@ const UploadArea = () => {
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       processFiles(Array.from(e.dataTransfer.files));
     }
-  }, [files]);
+  }, [processFiles]);
 
   const handleDragOver = useCallback((e) => {
     e.preventDefault();
@@ -69,10 +92,6 @@ const UploadArea = () => {
     if (e.target.files && e.target.files.length > 0) {
       processFiles(Array.from(e.target.files));
     }
-  };
-
-  const removeFile = (indexToRemove) => {
-    setFiles(files.filter((_, idx) => idx !== indexToRemove));
   };
 
   if (processing) {
@@ -107,9 +126,9 @@ const UploadArea = () => {
             {isDragging ? 'Drop it here!' : 'Drop your study material here'}
           </h2>
           <p className="text-gray-400 mb-4">
-            PDFs, screenshots, notes and documents
+            PDF lecture notes, textbooks, slides and documents
           </p>
-          <div className="px-6 py-2 rounded-full bg-purple-600 hover:bg-purple-700 transition font-medium shadow-lg shadow-purple-500/20">
+          <div className="px-6 py-2.5 rounded-full bg-purple-600 hover:bg-purple-700 transition font-medium shadow-lg shadow-purple-500/20 text-sm">
             Browse Files
           </div>
         </div>
@@ -117,7 +136,7 @@ const UploadArea = () => {
           type="file" 
           className="hidden" 
           multiple 
-          accept=".pdf,.png,.jpg,.jpeg,.txt"
+          accept=".pdf"
           onChange={handleFileInput} 
         />
         
@@ -127,30 +146,51 @@ const UploadArea = () => {
         )}
       </motion.label>
 
-      {/* Uploaded Files Preview */}
-      {files.length > 0 && (
+      {/* Uploaded Documents List */}
+      {documents.length > 0 && (
         <motion.div 
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           className="mt-8"
         >
-          <h3 className="text-lg font-medium mb-4 flex items-center text-gray-300">
-            <span className="w-2 h-2 rounded-full bg-green-500 mr-2" />
-            Ready to Process ({files.length})
-          </h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-medium flex items-center text-gray-300">
+              <span className="w-2 h-2 rounded-full bg-green-500 mr-2" />
+              Uploaded Documents ({documents.length})
+            </h3>
+          </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-            {files.map((file, idx) => (
-              <div key={idx} className="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/10 group">
-                <div className="flex items-center overflow-hidden">
-                  <File className="w-8 h-8 text-blue-400 mr-3 flex-shrink-0" />
+            {documents.map((doc) => (
+              <div 
+                key={doc.id} 
+                className="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/10 hover:border-purple-500/30 transition-all group"
+              >
+                <div className="flex items-center overflow-hidden mr-3">
+                  <div className="p-2 rounded-xl bg-purple-500/10 border border-purple-500/20 mr-3 flex-shrink-0">
+                    <File className="w-5 h-5 text-purple-400" />
+                  </div>
                   <div className="truncate">
-                    <p className="text-sm font-medium text-white truncate">{file.name}</p>
-                    <p className="text-xs text-gray-500">{formatBytes(file.size)}</p>
+                    <p className="text-sm font-medium text-white truncate" title={doc.name}>{doc.name}</p>
+                    <div className="flex items-center gap-2 mt-1 text-xs text-gray-400">
+                      <span>{formatBytes(doc.size)}</span>
+                      <span>•</span>
+                      <span className="flex items-center gap-1">
+                        <Layers className="w-3 h-3 text-gray-500" />
+                        {doc.pageCount} p.
+                      </span>
+                    </div>
+                    <div className="mt-1.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-[11px] text-purple-300">
+                      <BookOpen className="w-3 h-3" />
+                      {doc.subjectName}
+                    </div>
                   </div>
                 </div>
+
                 <button 
-                  onClick={() => removeFile(idx)}
-                  className="p-1.5 rounded-full hover:bg-red-500/20 text-gray-400 hover:text-red-400 transition opacity-0 group-hover:opacity-100"
+                  onClick={() => removeDocument(doc.id)}
+                  title="Remove document"
+                  className="p-1.5 rounded-lg hover:bg-red-500/20 text-gray-400 hover:text-red-400 transition opacity-0 group-hover:opacity-100 flex-shrink-0 cursor-pointer"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -164,3 +204,4 @@ const UploadArea = () => {
 };
 
 export default UploadArea;
+

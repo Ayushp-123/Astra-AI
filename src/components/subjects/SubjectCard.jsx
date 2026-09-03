@@ -2,7 +2,12 @@ import { motion } from 'framer-motion';
 import { BookOpen, ChevronRight, Activity, Clock } from 'lucide-react';
 
 const SubjectCard = ({ subject, onClick, index }) => {
-  // Generate a mock color and stats based on the subject name for the demo
+  const subjectName = typeof subject === 'object' && subject !== null ? subject.name : subject;
+  const docsCount = typeof subject === 'object' && Array.isArray(subject?.documentIds) 
+    ? subject.documentIds.length 
+    : 1;
+
+  // Curated gradient palettes based on subject name
   const colors = [
     'from-purple-500 to-indigo-500',
     'from-blue-500 to-cyan-500',
@@ -11,12 +16,9 @@ const SubjectCard = ({ subject, onClick, index }) => {
     'from-pink-500 to-rose-500'
   ];
   
-  const colorIndex = subject.length % colors.length;
+  const colorIndex = (subjectName?.length || 0) % colors.length;
   const gradient = colors[colorIndex];
-  
-  // Mock stats
-  const docsCount = (subject.length % 5) + 1;
-  const lastActive = "Just now";
+  const lastActive = "Active";
 
   return (
     <motion.div
@@ -43,13 +45,13 @@ const SubjectCard = ({ subject, onClick, index }) => {
         </div>
 
         <h3 className="text-2xl font-bold mb-2 text-white group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white group-hover:to-gray-400 transition-all">
-          {subject}
+          {subjectName}
         </h3>
         
         <div className="mt-auto pt-6 flex items-center gap-4 text-xs font-medium text-gray-500">
           <div className="flex items-center gap-1.5">
-            <Activity className="w-3.5 h-3.5" />
-            {docsCount} document{docsCount > 1 ? 's' : ''}
+            <Activity className="w-3.5 h-3.5 text-purple-400" />
+            <span className="text-gray-300 font-semibold">{docsCount}</span> document{docsCount === 1 ? '' : 's'}
           </div>
           <div className="flex items-center gap-1.5">
             <Clock className="w-3.5 h-3.5" />
@@ -62,3 +64,4 @@ const SubjectCard = ({ subject, onClick, index }) => {
 };
 
 export default SubjectCard;
+

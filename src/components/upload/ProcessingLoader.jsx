@@ -3,13 +3,13 @@ import { useStore } from '../../store/useStore';
 import { BrainCircuit, Search, Database, Sparkles } from 'lucide-react';
 
 const ProcessingLoader = () => {
-  const { processingProgress } = useStore();
+  const { processingProgress, processingStatus } = useStore();
 
   const steps = [
     { icon: Search, text: "Scanning document contents..." },
-    { icon: BrainCircuit, text: "Extracting key concepts with AI..." },
-    { icon: Database, text: "Structuring knowledge base..." },
-    { icon: Sparkles, text: "Generating subjects..." }
+    { icon: BrainCircuit, text: "Extracting pages & text structure..." },
+    { icon: Database, text: "Categorizing into subjects..." },
+    { icon: Sparkles, text: "Finalizing study workspace..." }
   ];
 
   // Determine current step based on progress
@@ -28,9 +28,14 @@ const ProcessingLoader = () => {
       <div className="absolute inset-0 bg-gradient-to-tr from-purple-500/10 via-transparent to-blue-500/10 animate-glow" />
 
       <div className="relative z-10 w-full max-w-md mx-auto">
-        <h2 className="text-3xl font-bold mb-8 text-center text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-blue-400">
+        <h2 className="text-3xl font-bold mb-2 text-center text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-blue-400">
           ASTRA is processing...
         </h2>
+        {processingStatus && (
+          <p className="text-xs text-center text-purple-300 mb-6 font-mono truncate">
+            {processingStatus}
+          </p>
+        )}
 
         {/* Progress Bar */}
         <div className="w-full h-2 bg-white/10 rounded-full mb-8 overflow-hidden">

@@ -1,32 +1,108 @@
+export const classifySubject = (fileName = "", textSample = "") => {
+  const combined = `${fileName} ${textSample}`.toLowerCase();
+
+  if (
+    combined.includes("math") ||
+    combined.includes("calculus") ||
+    combined.includes("algebra") ||
+    combined.includes("differential") ||
+    combined.includes("discrete")
+  ) {
+    return "Mathematics";
+  } else if (
+    combined.includes("dbms") ||
+    combined.includes("database") ||
+    combined.includes("sql") ||
+    combined.includes("relational") ||
+    combined.includes("schema") ||
+    combined.includes("mongodb")
+  ) {
+    return "DBMS";
+  } else if (
+    combined.includes("os") ||
+    combined.includes("operating system") ||
+    combined.includes("scheduling") ||
+    combined.includes("deadlock") ||
+    combined.includes("semaphore") ||
+    combined.includes("paging") ||
+    combined.includes("thread")
+  ) {
+    return "Operating Systems";
+  } else if (
+    combined.includes("network") ||
+    combined.includes("cn") ||
+    combined.includes("tcp") ||
+    combined.includes("osi layer") ||
+    combined.includes("protocol") ||
+    combined.includes("routing")
+  ) {
+    return "Computer Networks";
+  } else if (
+    combined.includes("data structure") ||
+    combined.includes("algorithm") ||
+    combined.includes("dsa") ||
+    combined.includes("binary tree") ||
+    combined.includes("linked list") ||
+    combined.includes("graph")
+  ) {
+    return "Data Structures & Algorithms";
+  } else if (combined.includes("java") || combined.includes("spring")) {
+    return "Java";
+  } else if (
+    combined.includes("python") ||
+    combined.includes("django") ||
+    combined.includes("flask") ||
+    combined.includes("numpy") ||
+    combined.includes("pandas")
+  ) {
+    return "Python";
+  } else if (
+    combined.includes("react") ||
+    combined.includes("web") ||
+    combined.includes("html") ||
+    combined.includes("css") ||
+    combined.includes("javascript") ||
+    combined.includes("frontend")
+  ) {
+    return "Web Development";
+  } else if (
+    combined.includes("ai") ||
+    combined.includes("machine learning") ||
+    combined.includes("deep learning") ||
+    combined.includes("neural") ||
+    combined.includes("nlp") ||
+    combined.includes("ml")
+  ) {
+    return "Artificial Intelligence";
+  } else if (
+    combined.includes("physics") ||
+    combined.includes("mechanics") ||
+    combined.includes("electromagnetism") ||
+    combined.includes("thermodynamics") ||
+    combined.includes("quantum")
+  ) {
+    return "Physics";
+  } else if (
+    combined.includes("chemistry") ||
+    combined.includes("organic") ||
+    combined.includes("inorganic") ||
+    combined.includes("reaction")
+  ) {
+    return "Chemistry";
+  } else if (
+    combined.includes("biology") ||
+    combined.includes("genetics") ||
+    combined.includes("cell") ||
+    combined.includes("anatomy")
+  ) {
+    return "Biology";
+  } else {
+    return "General Notes";
+  }
+};
+
 export const detectSubjects = (uploadedFiles) => {
-  const detectedSubjects = [];
-
-  uploadedFiles.forEach((file) => {
-    const name = file.name.toLowerCase();
-
-    if (name.includes("math")) {
-      detectedSubjects.push("Mathematics");
-    } else if (name.includes("dbms") || name.includes("database")) {
-      detectedSubjects.push("DBMS");
-    } else if (name.includes("os") || name.includes("operating")) {
-      detectedSubjects.push("Operating Systems");
-    } else if (name.includes("network") || name.includes("cn")) {
-      detectedSubjects.push("Computer Networks");
-    } else if (name.includes("java")) {
-      detectedSubjects.push("Java");
-    } else if (name.includes("python")) {
-      detectedSubjects.push("Python");
-    } else if (name.includes("react") || name.includes("web")) {
-      detectedSubjects.push("Web Development");
-    } else if (name.includes("ai") || name.includes("machine") || name.includes("ml")) {
-      detectedSubjects.push("Artificial Intelligence");
-    } else if (name.includes("physics")) {
-      detectedSubjects.push("Physics");
-    } else {
-      detectedSubjects.push("General Notes");
-    }
-  });
-
+  const detectedSubjects = uploadedFiles.map((file) => classifySubject(file.name));
   return [...new Set(detectedSubjects)];
 };
 
@@ -41,3 +117,4 @@ export const formatBytes = (bytes, decimals = 2) => {
 
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
 };
+

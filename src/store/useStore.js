@@ -2,8 +2,68 @@ import { create } from 'zustand';
 import { storageService, checkIndexedDBAvailable } from '../services/storageService.js';
 import { studyHistoryService } from '../services/studyHistoryService.js';
 import { resetSearchIndexCache } from '../services/searchService.js';
+import { authService } from '../services/authService.js';
 
 export const useStore = create((set, get) => ({
+  // Authentication State
+  user: null,
+  session: null,
+  authLoading: false,
+  authInitialized: false,
+  authError: null,
+
+  setUser: (user) => set({ user }),
+  setSession: (session) => set({ session, user: session?.user || null }),
+  setAuthLoading: (authLoading) => set({ authLoading }),
+  setAuthInitialized: (authInitialized) => set({ authInitialized }),
+  setAuthError: (authError) => set({ authError }),
+
+  initializeAuth: async () => {
+    try {
+      set({ authLoading: true });
+      const currentSession = await authService.getCurrentSession();
+      set({
+        session: currentSession,
+        user: currentSession?.user || null,
+        authInitialized: true,
+        authLoading: false
+      });
+
+      // Subscribe to real-time auth changes
+      authService.onAuthStateChange((_event, session) => {
+        set({
+          session,
+          user: session?.user || null
+        });
+      });
+    } catch (err) {
+      console.warn('[ASTRA Auth] Auth initialization error:', err);
+      set({
+        session: null,
+        user: null,
+        authInitialized: true,
+        authLoading: false
+      });
+    }
+  },
+
+  signOutUser: async () => {
+    try {
+      set({ authLoading: true });
+      await authService.signOut();
+      // Only reset auth state — preserve all local IndexedDB study data
+      set({
+        user: null,
+        session: null,
+        authLoading: false,
+        activeView: 'home'
+      });
+    } catch (err) {
+      console.warn('[ASTRA Auth] Sign out error:', err);
+      set({ authLoading: false });
+    }
+  },
+
   // Local Persistence & Hydration State
   isHydrating: true,
   storageAvailable: checkIndexedDBAvailable(),
@@ -17,10 +77,10 @@ export const useStore = create((set, get) => ({
   // Subject: { id, name, documentIds: string[], createdAt }
   subjects: [],
 
-  // Active Selections & Views
+  // Active Selections & Views: 'home' | 'dashboard' | 'workspace' | 'login' | 'signup' | 'profile'
   selectedSubjectId: null,
   selectedDocumentId: null,
-  activeView: 'home', // 'home' | 'dashboard' | 'workspace'
+  activeView: 'home',
   setActiveView: (view) => set({ activeView: view }),
 
   // Processing state

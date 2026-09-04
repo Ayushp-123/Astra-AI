@@ -15,6 +15,7 @@ import StatCard from './StatCard';
 import SubjectProgressCard from './SubjectProgressCard';
 import RecentActivityList from './RecentActivityList';
 import BackupSection from './BackupSection';
+import { getUserDisplayName } from '../../services/authService';
 import { 
   BookOpen, 
   Flame, 
@@ -35,8 +36,11 @@ const Dashboard = () => {
     summaries,
     setSelectedSubject,
     setSelectedDocumentId,
-    setActiveView
+    setActiveView,
+    user
   } = useStore();
+
+  const displayName = getUserDisplayName(user);
 
   const [activities, setActivities] = useState([]);
 
@@ -106,7 +110,7 @@ const Dashboard = () => {
             </span>
           </div>
           <h1 className="text-3xl md:text-4xl font-extrabold text-white tracking-tight">
-            Study Intelligence Dashboard
+            {displayName ? `Welcome back, ${displayName} 👋` : 'Study Intelligence Dashboard'}
           </h1>
           <p className="text-sm text-gray-400 mt-1">
             Real-time analytics and progress across your local course material.

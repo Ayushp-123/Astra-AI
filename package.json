@@ -12,6 +12,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.115.0",
     "@tailwindcss/vite": "^4.3.0",
     "framer-motion": "^12.38.0",
     "fuse.js": "^7.3.0",
